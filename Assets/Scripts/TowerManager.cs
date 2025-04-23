@@ -62,11 +62,33 @@ public class TowerManager : MonoBehaviour
         if (previewBlock != null)
             Destroy(previewBlock);
 
-        previewBlock = Instantiate(blockPrefab);
+        // previewBlock = Instantiate(blockPrefab);
+        float highestY = GetHighestBlockYPosition();
+        Vector3 previewPosition = new Vector3(0f, highestY + spawnHeightOffset, 0f);
+        previewBlock = Instantiate(blockPrefab, previewPosition, Quaternion.identity);
         SetupPreviewBlock(previewBlock, nextBlockData);
 
         currentHeight++;
         scoreText.text = $"Your Score: {currentHeight}";
+    }
+
+    private float GetHighestBlockYPosition()
+    {
+        float highestY = 0f;
+
+        foreach (Transform child in tower)
+        {
+            if (child != null)
+            {
+                float blockTopY = child.position.y + (child.localScale.y / 2f);
+                if (blockTopY > highestY)
+                {
+                    highestY = blockTopY;
+                }
+            }
+        }
+
+        return highestY;
     }
 
     void SetupPreviewBlock(GameObject block, BlockData data)
@@ -119,11 +141,8 @@ public class TowerManager : MonoBehaviour
 
             Debug.DrawRay(hit.point, hit.normal * 2f, Color.red, 1f);
             Debug.Log($"Hit normal: {hit.normal}, angle: {Vector3.Angle(hit.normal, Vector3.up)}");
-
-            // Check if the surface hit is mostly flat (like the top of a block or platform)
-            if (Vector3.Angle(hit.normal, Vector3.up) < 5f) // ~5 degrees tolerance
+            if (Vector3.Angle(hit.normal, Vector3.up) <= 30f) 
             {
-                // Optional: Only allow hit on platform or blocks
                 if (hit.collider.CompareTag("block") || hit.collider.CompareTag("platform"))
                 {
                     hitPoint = hit.point;
@@ -145,13 +164,12 @@ public class TowerManager : MonoBehaviour
         Vector3 hitPoint;
         bool validHit = GetRaycastHitPoint(out hitPoint);
 
-        previewBlock.transform.position = hitPoint + Vector3.up * spawnHeightOffset;
-        previewBlock.transform.rotation = Quaternion.identity;
+        // previewBlock.transform.position = hitPoint + Vector3.up * spawnHeightOffset;
+        // previewBlock.transform.rotation = Quaternion.identity;
 
         // only place a block (and move preview block) if we hit a valid surface
         if (validHit)
         {
-            
             // touch input
             if (Input.touchCount > 0 && Input.GetTouch(0).phase == TouchPhase.Began && allowTouch)
             {
@@ -194,12 +212,10 @@ public class TowerManager : MonoBehaviour
     private IEnumerator CollapseTower(float delay)
     {
         yield return new WaitForSeconds(delay);
-
         foreach (Transform child in tower)
         {
             Destroy(child.gameObject);
         }
-        
         gameOverPanel.SetActive(true);
     }
     
