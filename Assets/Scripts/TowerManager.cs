@@ -12,6 +12,7 @@ public class TowerManager : MonoBehaviour
         public Color color;
     }
     [SerializeField] private GameObject blockPrefab;
+    [SerializeField] private Transform platformPosition;
     private GameObject previewBlock;
     private BlockData nextBlockData;
     [SerializeField] private Transform tower;
@@ -22,7 +23,9 @@ public class TowerManager : MonoBehaviour
     private Transform lastBlock;
     [SerializeField] private GameObject gameOverPanel;
     [SerializeField] private GameObject gameStartPanel;
+    [SerializeField] private GameObject gamePanel;
     [SerializeField] private TextMeshProUGUI scoreText;
+    [SerializeField] private TextMeshProUGUI ingameScoreText;
     private int currentHeight = 0; 
 
     private void Start()
@@ -31,6 +34,7 @@ public class TowerManager : MonoBehaviour
         {
             mainCamera = Camera.main;
         }
+        gameStartPanel.SetActive(true);
     }
 
     private BlockData GenerateNextBlockData()
@@ -69,9 +73,16 @@ public class TowerManager : MonoBehaviour
         SetupPreviewBlock(previewBlock, nextBlockData);
 
         currentHeight++;
-        scoreText.text = $"Your Score: {currentHeight}";
+        UpdateScoreText(currentHeight);
     }
 
+    private void UpdateScoreText(int height)
+    {
+        if (scoreText != null)
+        {
+            ingameScoreText.text = $"Score: {currentHeight}";
+        }
+    }
     private float GetHighestBlockYPosition()
     {
         float highestY = 0f;
@@ -101,16 +112,6 @@ public class TowerManager : MonoBehaviour
             Color previewColor = data.color;
             previewColor.a = 0.5f;
             renderer.material.color = previewColor;
-
-            Material mat = renderer.material;
-            mat.SetFloat("_Mode", 3); // Transparent
-            mat.SetInt("_SrcBlend", (int)UnityEngine.Rendering.BlendMode.SrcAlpha);
-            mat.SetInt("_DstBlend", (int)UnityEngine.Rendering.BlendMode.OneMinusSrcAlpha);
-            mat.SetInt("_ZWrite", 0);
-            mat.DisableKeyword("_ALPHATEST_ON");
-            mat.EnableKeyword("_ALPHABLEND_ON");
-            mat.DisableKeyword("_ALPHAPREMULTIPLY_ON");
-            mat.renderQueue = 3000;
         }
 
         var rb = block.GetComponent<Rigidbody>();
@@ -200,6 +201,8 @@ public class TowerManager : MonoBehaviour
             
             allowTouch = false;
 
+            scoreText.text = $"Your Score: {currentHeight}";
+
             Debug.Log("Tower collapsed!");
 
             // wait for 2 seconds before collapsing
@@ -216,27 +219,35 @@ public class TowerManager : MonoBehaviour
         {
             Destroy(child.gameObject);
         }
+        gamePanel.SetActive(false);
         gameOverPanel.SetActive(true);
     }
     
     
     public void PlayGame()
     {
+        currentHeight = 0; 
+        
+        UpdateScoreText(currentHeight);
+
         gameStartPanel.SetActive(false);
 
         allowTouch = true;
         
-        currentHeight = 0; 
 
         if (gameOverPanel.activeSelf)
-        gameOverPanel.SetActive(false);
+            gameOverPanel.SetActive(false);
+
+        gamePanel.SetActive(true);
 
         nextBlockData = GenerateNextBlockData();
         
         if (previewBlock != null)
             Destroy(previewBlock);
 
-        previewBlock = Instantiate(blockPrefab);
+        // previewBlock = Instantiate(blockPrefab);
+        // spawn over the platform
+        previewBlock = Instantiate(blockPrefab, platformPosition.position + Vector3.up * spawnHeightOffset, Quaternion.identity);
         SetupPreviewBlock(previewBlock, nextBlockData);
     }
 }
